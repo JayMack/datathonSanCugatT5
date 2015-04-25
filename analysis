@@ -1,0 +1,64 @@
+rm(list=ls())
+setwd("/Users/josepcasas/Documents/Code/datathon/synergic/")
+library(devtools)
+library(ggmap)
+library(deldir)
+library(rMaps)
+
+#loadPackages(c("geosphere", "RCurl", "XML","ggmap","xts"))
+
+#importing all the data and clean it
+ele <- read.csv("~/Documents/code/datathon/synergic/dataset/elementos.csv", sep=";")
+ele <- data.frame(ele$ELE_ID, ele$ELE_ICO_ID, ele$ELE_LONGITUD, ele$ELE_LATITUD)
+names(ele) <-c("id", "type", "lon", "lat")
+ele$lat <- as.numeric(gsub(",", ".", ele$lat))
+ele$lon <- as.numeric(gsub(",", ".", ele$lon))
+
+# drop elements that have NA in lat or lon
+ele<-ele[!is.na(ele$lat),]
+ele<-ele[!is.na(ele$lon),]
+
+#create voronoi edges
+edges <- deldir(ele$lon, ele$lat)
+
+
+
+#----------------------------------------
+# Static Map
+#----------------------------------------
+
+#create map
+map<- get_map(location = "Sant Cugat", zoom = 14)
+
+p <- ggmap(map)
+p
+# envasos (groc)
+envasos <- p + geom_point(data = ele[which(ele$type=="167" | ele$type == "245"),], aes(x = as.numeric(lon),y = as.numeric(lat)), size = 2, color="#FFFF00")
+
+# paper (blau)
+paper <- p + geom_point(data = ele[which(ele$type=="168" | ele$type == "246"),], aes(x = as.numeric(lon),y = as.numeric(lat)), size = 2, color="#0099FF")
+
+# rebuig (reb) (gris)
+rebuig <- p + geom_point(data = ele[which(ele$type=="170" | ele$type == "166" | ele$type == "166"),], aes(x = as.numeric(lon),y = as.numeric(lat)), size = 2, color="#666666")
+
+# vidre (verd)
+vidre <- p + geom_point(data = ele[which(ele$type=="169" | ele$type == "244"),], aes(x = as.numeric(lon),y = as.numeric(lat)), size = 2, color="green")
+
+
+# voronoi and delaunay graphs
+points <- p +  geom_point(data = ele, aes(x = as.numeric(lon),y = as.numeric(lat)), size = 2, color="#666666")
+
+voronoi <- points + geom_segment(data = edges$dirsgs, aes(x = x1, y = y1, xend = x2, yend = y2), size = 1, linetype = 1, color= "#FFB958")
+
+delaunay <- points + geom_segment(data = edges$delsgs, aes(x = x1, y = y1, xend = x2, yend = y2), size = 1, linetype = 1, color= "#0000FF", alpha = 0.3)
+
+combined <- points + geom_segment(data = edges$dirsgs, aes(x = x1, y = y1, xend = x2, yend = y2), size = 1, linetype = 1, color= "#FFB958") + geom_segment(data = edges$delsgs, aes(x = x1, y = y1, xend = x2, yend = y2), size = 1, linetype = 1, color= "#0000FF", alpha = 0.3)
+
+#saving the files
+ggsave(voronoi, file="voronoi.png", width = 5, height = 5)
+ggsave(delaunay, file="delaunay.png", width = 5, height = 5)
+ggsave(combined, file="combined.png", width = 5, height = 5)
+
+ggsave(envasos, file="voronoi.png", width = 5, height = 5)
+ggsave(delaunay, file="delaunay.png", width = 5, height = 5)
+ggsave(combined, file="combined.png", width = 5, height = 5)
